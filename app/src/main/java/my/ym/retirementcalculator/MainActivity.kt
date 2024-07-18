@@ -14,12 +14,18 @@ import com.microsoft.appcenter.AppCenter
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
 import my.ym.retirementcalculator.ui.theme.RetirementCalculatorTheme
+import my.ym.retirementcalculator.utils.SecretConstants
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-
+        AppCenter.start(
+            application,
+            SecretConstants.AppCenter.APP_SECRET,
+            Analytics::class.java,
+            Crashes::class.java,
+        )
 
         setContent {
             RetirementCalculatorTheme {
