@@ -13,6 +13,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.microsoft.appcenter.AppCenter
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
+import my.ym.retirementcalculator.ui.screens.ScreenHome
 import my.ym.retirementcalculator.ui.theme.RetirementCalculatorTheme
 import my.ym.retirementcalculator.utils.SecretConstants
 
@@ -34,7 +35,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Greeting("Android")
+                    ScreenHome()
                 }
             }
         }
