@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
@@ -20,11 +21,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.microsoft.appcenter.Flags
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.analytics.EventProperties
+import my.ym.retirementcalculator.extensions.orZero
+import kotlin.math.pow
 
 @Composable
 fun ScreenHome() {
@@ -41,7 +45,10 @@ fun ScreenHome() {
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = "Monthly Salary") },
             value = monthlySalary,
-            onValueChange = { monthlySalary = it }
+            onValueChange = { monthlySalary = it },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal
+            )
         )
 
         var interestRate by rememberSaveable { mutableStateOf("") }
@@ -49,7 +56,10 @@ fun ScreenHome() {
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = "Interest Rate") },
             value = interestRate,
-            onValueChange = { interestRate = it }
+            onValueChange = { interestRate = it },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal
+            )
         )
 
         var yourCurrentAge by rememberSaveable { mutableStateOf("") }
@@ -57,7 +67,10 @@ fun ScreenHome() {
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = "Your Current Age") },
             value = yourCurrentAge,
-            onValueChange = { yourCurrentAge = it }
+            onValueChange = { yourCurrentAge = it },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            )
         )
 
         var plannedRetirementAge by rememberSaveable { mutableStateOf("") }
@@ -65,7 +78,10 @@ fun ScreenHome() {
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = "Planned Retirement Age") },
             value = plannedRetirementAge,
-            onValueChange = { plannedRetirementAge = it }
+            onValueChange = { plannedRetirementAge = it },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number
+            )
         )
 
         var currentSavings by rememberSaveable { mutableStateOf("") }
@@ -73,7 +89,10 @@ fun ScreenHome() {
             modifier = Modifier.fillMaxWidth(),
             label = { Text(text = "Current Savings") },
             value = currentSavings,
-            onValueChange = { currentSavings = it }
+            onValueChange = { currentSavings = it },
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal
+            )
         )
 
         var toast: Toast? by remember { mutableStateOf(null) }
@@ -88,24 +107,66 @@ fun ScreenHome() {
             toast?.show()
         }
 
+        var textResult by rememberSaveable { mutableStateOf("") }
+
         Button(
             modifier = Modifier.fillMaxWidth(),
             onClick = {
                 val properties = EventProperties()
-                    .set("value 1", 10)
-                    .set("value 2", 20)
-                    .set("value 3", 30)
+                    .set("Monthly Salary", monthlySalary)
+                    .set("Interest Rate", interestRate)
+                    .set("Your Current Salary", yourCurrentAge)
+                    .set("Planned Retirement Age", plannedRetirementAge)
+                    .set("Current Savings", currentSavings)
 
-                Analytics.trackEvent(
-                    "Clicked button of Calculate with props and critical isa",
-                    properties,
-                    Flags.CRITICAL
-                )
+                when {
+                    monthlySalary.toFloatOrNull().orZero() <= 0f -> {
+                        Analytics.trackEvent("Wrong monthly salary", properties, Flags.CRITICAL)
 
-                showToast("Clicked el7")
+                        showToast("Incorrect monthly salary")
 
-                //throw RuntimeException("Trial 1")
-                //Crashes.generateTestCrash()
+                        textResult = ""
+                    }
+                    interestRate.toFloatOrNull().orZero() <= 0f -> {
+                        Analytics.trackEvent("Wrong interest rate", properties, Flags.CRITICAL)
+
+                        showToast("Incorrect interest rate")
+
+                        textResult = ""
+                    }
+                    yourCurrentAge.toIntOrNull().orZero() !in 13..200 -> {
+                        Analytics.trackEvent("Wrong current age", properties, Flags.CRITICAL)
+
+                        showToast("Incorrect current age")
+
+                        textResult = ""
+                    }
+                    plannedRetirementAge.toIntOrNull().orZero() !in 13..200
+                            || plannedRetirementAge.toIntOrNull().orZero() <= yourCurrentAge.toIntOrNull().orZero() -> {
+                        Analytics.trackEvent("Wrong planned retirement age", properties, Flags.CRITICAL)
+
+                        showToast("Incorrect planned retirement age")
+
+                        textResult = ""
+                    }
+                    else -> {
+                        Analytics.trackEvent(
+                            "Successful Calculate Click ( Screen Home )",
+                            properties,
+                            Flags.DEFAULTS
+                        )
+
+                        val futureSavings = calculateRetirement(
+                            interestRate.toFloatOrNull().orZero(),
+                            currentSavings.toFloatOrNull().orZero(),
+                            monthlySalary.toFloatOrNull().orZero(),
+                            (plannedRetirementAge.toIntOrNull().orZero() - yourCurrentAge.toIntOrNull().orZero()) * 12
+                        )
+
+                        textResult = "At the current rate of $interestRate%," +
+                                "saving $monthlySalary\$ a month you will have $futureSavings\$ by $plannedRetirementAge"
+                    }
+                }
             },
         ) {
             Text(text = "Calculate")
@@ -115,8 +176,18 @@ fun ScreenHome() {
             modifier = Modifier
                 .padding(top = 8.dp)
                 .fillMaxWidth(),
-            text = "At this rate, with your current monthly savings you will have 1,000,000\$ by 65 isa.",
+            text = textResult,
             textAlign = TextAlign.Center,
         )
     }
+}
+
+private fun calculateRetirement(interestRate: Float, currentSavings: Float, monthly: Float, numMonths: Int): Float {
+    var futureSavings = currentSavings * (1+(interestRate/100/12)).pow(numMonths)
+
+    for (i in 1..numMonths) {
+        futureSavings += monthly * (1+(interestRate/100/12)).pow(i)
+    }
+
+    return  futureSavings
 }
