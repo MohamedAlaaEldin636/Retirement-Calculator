@@ -25,7 +25,6 @@ import androidx.compose.ui.unit.dp
 import com.microsoft.appcenter.Flags
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.analytics.EventProperties
-import com.microsoft.appcenter.crashes.Crashes
 
 @Composable
 fun ScreenHome() {
