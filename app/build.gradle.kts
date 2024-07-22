@@ -20,16 +20,31 @@ android {
         }
     }
 
+    signingConfigs {
+        create("releaseConfig") {
+            storeFile = file(rootProject.file("my_ym.jks"))
+            storePassword = "MyYm2710"
+            keyAlias = "Myym"
+            keyPassword = "myym1027"
+        }
+    }
+
     buildTypes {
         debug {
+            signingConfig = signingConfigs.getByName("releaseConfig")
+
             isMinifyEnabled = false
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         release {
+            signingConfig = signingConfigs.getByName("releaseConfig")
+
             isMinifyEnabled = false
+
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
